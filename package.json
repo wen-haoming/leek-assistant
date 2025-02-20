@@ -1,0 +1,24 @@
+{
+  "name": "proxy-extension",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "watch-build": "vite --watch build",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.3.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "@vitejs/plugin-vue": "^4.2.3",
+    "chrome-types": "^0.1.342",
+    "rollup-plugin-copy": "^3.5.0",
+    "typescript": "^5.0.2",
+    "vite": "^4.4.5",
+    "vue-tsc": "^1.8.5"
+  }
+}
