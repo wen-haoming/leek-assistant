@@ -1,7 +1,7 @@
 <script lang="tsx" setup>
 import { Button, Table, AutoComplete, Input } from "ant-design-vue"
 import { onMounted, ref, watch } from "vue"
-import { getStockDetails, searchStocks, getStockDetail } from "../api"
+import { getStockDetails, getStockDetail } from "../api"
 
 // 定义股票数据的响应式引用
 const stockData = ref([]);
@@ -19,10 +19,12 @@ const columns = [
     title: '股票名称',
     key: 'name',
     dataIndex: 'name',
+    width: '50%',
     customRender: ({ record }) => (
-      <div class="stock-name">
+      <div  style="display:flex;align-items:center;">
         <div class="stock-title">{record.name}</div>
-        {/* <div class="stock-code">{record.code}</div> */}
+        <span style="margin:0 5px">|</span>
+        <div class="stock-code" >{record.code}</div>
       </div>
     )
   },
@@ -172,7 +174,7 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped>
+<style>
 .stock-list-container {
   padding: 12px;
   background-color: #fff;
@@ -227,8 +229,7 @@ onMounted(() => {
 
 .stock-code {
   font-size: 12px;
-  color: #999;
-  margin-top: 2px;
+  /* color: #ccc; */
 }
 
 .up {
