@@ -18,11 +18,21 @@
     "service_worker": "background/service-worker.js"
   },
   "permissions": [
+    "proxy",
     "tabs",
     "webRequest",
+    "proxy",
     "sidePanel"
   ],
-  "host_permissions": [],
+  "optional_permissions": [
+    "https://searchapi.eastmoney.com"
+  ],
+  "optional_host_permissions": [
+    "*://*/*"
+  ],
+  "host_permissions": [
+    
+  ],
   "side_panel": {
     "default_path": "sidePanel/index.html"
   },
