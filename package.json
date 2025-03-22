@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",
+    "@vueuse/core": "^13.0.0",
     "ant-design-vue": "4.x",
     "dayjs": "^1.11.13",
     "echarts": "^5.6.0",

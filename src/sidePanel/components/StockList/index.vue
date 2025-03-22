@@ -1,9 +1,9 @@
 <script lang="tsx" setup>
-import { Button, Table, AutoComplete, Input } from "ant-design-vue"
+import { Button, Table, AutoComplete, Select } from "ant-design-vue"
 import { onMounted, ref, watch } from "vue"
 import { getStockDetails, getStockDetail } from "../../api"
 import { columns } from './utils';
-
+import {PlusCircleOutlined} from '@ant-design/icons-vue'
 // 定义股票数据的响应式引用
 const stockData = ref([]);
 const loading = ref(false);
@@ -19,31 +19,37 @@ const addedStockCodes = ref(['0.000725', '1.600036', '0.000001', '0.000858', '1.
 
 
 // 实现搜索股票的函数
-const searchStock = async (keyword) => {
+const handleSearch = async (keyword) => {
   if (!keyword) {
     searchOptions.value = [];
     return;
   }
-
   searchLoading.value = true;
   try {
     // 尝试直接获取股票详情
-    const detail = await getStockDetail(`1.${keyword}`);
+    let detail = await getStockDetail(`1.${keyword}`);
+    let isShanghai = true;
+
     if (!detail?.data) {
       // 如果沪市没有，尝试深市
       detail = await getStockDetail(`0.${keyword}`);
+      isShanghai = false;
     }
 
     if (detail?.data) {
       const { f57: code, f58: name, f43: price, f170: change } = detail.data;
+      // 确保使用正确的市场前缀
+      const marketPrefix = isShanghai ? '1.' : '0.';
       searchOptions.value = [{
-        value: `${code.startsWith('6') ? '1.' : '0.'}${code}`,
+        value: `${marketPrefix}${code}`,
         label: `${name} (${code}) ${price.toFixed(2)} ${change >= 0 ? '+' : ''}${change.toFixed(2)}%`,
         code,
         name,
         price: price.toFixed(2),
         change: change.toFixed(2)
       }];
+      // 立即更新搜索值为当前选项
+      searchValue.value = searchOptions.value[0].value;
     } else {
       searchOptions.value = [];
     }
@@ -53,21 +59,6 @@ const searchStock = async (keyword) => {
   } finally {
     searchLoading.value = false;
   }
-};
-
-// 监听搜索值变化
-watch(searchValue, (newValue) => {
-  searchStock(newValue);
-});
-
-// 处理选择股票
-const handleSelectStock = (value, option) => {
-  // 检查是否已经添加过该股票
-  if (!addedStockCodes.value.includes(value)) {
-    addedStockCodes.value.push(value);
-    loadStockData();
-  }
-  searchValue.value = ''; // 清空搜索框
 };
 
 // 处理表格行点击事件
@@ -97,6 +88,7 @@ const loadStockData = async () => {
       change: typeof item.f3 === 'number' ? item.f3.toFixed(2) : item.f3,
       pe: typeof item.f9 === 'number' ? item.f9.toFixed(2) : item.f9,
     })) || [];
+    console.log(stockData.value,'stockData');
   } catch (error) {
     console.error('加载股票数据失败:', error);
   } finally {
@@ -104,28 +96,55 @@ const loadStockData = async () => {
   }
 };
 
+const handleSelectStock = (value) => {
+  if (!addedStockCodes.value.includes(value)) {
+    addedStockCodes.value.push(value);
+    loadStockData();
+  }
+}
+
 onMounted(() => {
   loadStockData();
 })
+
+
 </script>
 
 <template>
   <div class="stock-list-container">
     <div class="header">
       <div class="search-container">
-        <AutoComplete v-model:value="searchValue" :options="searchOptions" :dropdown-match-select-width="280"
-          style="width: 200px" placeholder="搜索股票" @select="handleSelectStock" :loading="searchLoading">
-          <template #default>
-            <Input size="small" />
-          </template>
-        </AutoComplete>
+        <AutoComplete
+            show-search
+            placeholder="输入代码"
+            :options="searchOptions"
+            :loading="searchLoading"
+            style="width: 250px"
+            @search="handleSearch"
+            @select="handleSelectStock"
+            @keydown.enter="() => {
+              if (searchOptions.value?.[0]) {
+                const stockCode = searchOptions.value[0].value;
+                if (!addedStockCodes.value.includes(stockCode)) {
+                  addedStockCodes.value.push(stockCode);
+                  loadStockData();
+                }
+              }
+            }"
+          />
       </div>
       <Button type="primary" size="small" @click="loadStockData" :loading="loading">刷新</Button>
     </div>
     <Table 
     :showHeader="false"
-    :columns="columns" :data-source="stockData" :loading="loading" :pagination="false" size="small"
-      class="custom-table" :row-class-name="(record) => record.code === selectedStock?.code ? 'selected-row' : ''"
+    :columns="columns" 
+    :data-source="stockData" 
+    :loading="loading" 
+    :pagination="false"
+     size="small"
+      class="custom-table" 
+      :bordered="false"
+      :row-class-name="(record) => record.code === selectedStock?.code ? 'selected-row' : ''"
       :customRow="(record) => {
           return {
             onClick: () => handleRowClick(record)
@@ -159,7 +178,6 @@ onMounted(() => {
 }
 
 .custom-table {
-  border-radius: 6px;
   overflow: hidden;
   :deep(.ant-table.ant-table-small){
     .ant-table-cell{
@@ -170,7 +188,6 @@ onMounted(() => {
 
 :deep(.ant-table) {
   border-radius: 6px;
-  border: 1px solid #f0f0f0;
 }
 
 :deep(.ant-table-thead > tr > th) {
