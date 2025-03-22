@@ -6,7 +6,7 @@
     dataIndex: 'name',
     width: '50%',
     customRender: ({ record }) => (
-      <div  style="display:flex;align-items:center;">
+      <div style="display:flex;align-items:center;font-size:12px">
         <div class="stock-title">{record.name}</div>
         <span style="margin:0 5px">|</span>
         <div class="stock-code" >{record.code}</div>
