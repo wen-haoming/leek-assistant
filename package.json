@@ -1,5 +1,5 @@
 {
-  "name": "proxy-extension",
+  "name": "leek-assistant",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -12,6 +12,7 @@
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",
     "ant-design-vue": "4.x",
+    "dayjs": "^1.11.13",
     "echarts": "^5.6.0",
     "unplugin-vue-components": "^28.4.1",
     "vue": "^3.3.4"

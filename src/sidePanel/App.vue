@@ -1,47 +1,36 @@
 <template>
-  <div class="side-panel bg-red w-100% h-100%" >
-    <Layoyt />
+  <div class="side-panel">
+    <StockList />
+    <StockChart :stockInfo="selectedStock" />
   </div>
 </template>
 
 <script setup lang="ts">
-import Layoyt from './Layoyt.vue'
+import { ref, onMounted, onUnmounted } from 'vue';
+import StockList from './components/StockList/index.vue';
+import StockChart from './components/StockChart/index.vue';
 
+const selectedStock = ref(null);
+
+// 监听股票选择事件
+const handleStockSelected = (event) => {
+  selectedStock.value = event.detail.stock;
+};
+
+onMounted(() => {
+  window.addEventListener('stockSelected', handleStockSelected);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('stockSelected', handleStockSelected);
+});
 </script>
 
 <style scoped>
-
-.current-tab {
-  margin-bottom: 20px;
-  padding: 10px;
-  background-color: #f5f5f5;
-  border-radius: 4px;
-}
-
-.proxy-settings {
-  margin-bottom: 20px;
-}
-
-.requests {
-  max-height: 500px;
+.side-panel {
+  padding: 16px;
+  height: 100%;
   overflow-y: auto;
-}
-
-.request-item {
-  padding: 10px;
-  margin-bottom: 10px;
-  background-color: #f9f9f9;
-  border-radius: 4px;
-}
-
-.request-item p {
-  margin: 5px 0;
-  font-size: 14px;
-}
-
-hr {
-  border: none;
-  border-top: 1px solid #eee;
-  margin: 10px 0;
+  background-color: #f5f5f5;
 }
 </style>

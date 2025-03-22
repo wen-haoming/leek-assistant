@@ -1,7 +1,8 @@
 <script lang="tsx" setup>
 import { Button, Table, AutoComplete, Input } from "ant-design-vue"
 import { onMounted, ref, watch } from "vue"
-import { getStockDetails, getStockDetail } from "../api"
+import { getStockDetails, getStockDetail } from "../../api"
+import { columns } from './utils';
 
 // 定义股票数据的响应式引用
 const stockData = ref([]);
@@ -9,51 +10,13 @@ const loading = ref(false);
 const searchValue = ref('');
 const searchOptions = ref([]);
 const searchLoading = ref(false);
+// 选中的股票
+const selectedStock = ref(null);
 
 // 已添加的股票代码列表
 const addedStockCodes = ref(['0.000725', '1.600036', '0.000001', '0.000858', '1.601318']);
 
-// 定义表格列
-const columns = [
-  {
-    title: '股票名称',
-    key: 'name',
-    dataIndex: 'name',
-    width: '50%',
-    customRender: ({ record }) => (
-      <div  style="display:flex;align-items:center;">
-        <div class="stock-title">{record.name}</div>
-        <span style="margin:0 5px">|</span>
-        <div class="stock-code" >{record.code}</div>
-      </div>
-    )
-  },
-  {
-    title: '涨跌幅',
-    key: 'change',
-    dataIndex: 'change',
-    align: 'center',
-    customRender: ({ text }) => {
-      const value = parseFloat(text);
-      const style = {
-        color: value >= 0 ? '#f5222d' : '#52c41a',
-        fontWeight: 500,
-        fontSize: '14px'
-      };
-      return (
-        <span style={style}>
-          {value >= 0 ? '+' : ''}{text}%
-        </span>
-      );
-    }
-  },
-  {
-    title: '价格',
-    key: 'price',
-    dataIndex: 'price',
-    align: 'right'
-  }
-];
+
 
 // 实现搜索股票的函数
 const searchStock = async (keyword) => {
@@ -61,7 +24,7 @@ const searchStock = async (keyword) => {
     searchOptions.value = [];
     return;
   }
-  
+
   searchLoading.value = true;
   try {
     // 尝试直接获取股票详情
@@ -70,7 +33,7 @@ const searchStock = async (keyword) => {
       // 如果沪市没有，尝试深市
       detail = await getStockDetail(`0.${keyword}`);
     }
-    
+
     if (detail?.data) {
       const { f57: code, f58: name, f43: price, f170: change } = detail.data;
       searchOptions.value = [{
@@ -107,6 +70,19 @@ const handleSelectStock = (value, option) => {
   searchValue.value = ''; // 清空搜索框
 };
 
+// 处理表格行点击事件
+const handleRowClick = (record) => {
+  selectedStock.value = record;
+  // 发送事件通知父组件
+  const event = new CustomEvent('stockSelected', {
+    detail: {
+      stock: record,
+      secid: `${record.code.startsWith('6') ? '1.' : '0.'}${record.code}`
+    }
+  });
+  window.dispatchEvent(event);
+};
+
 // 加载股票数据
 const loadStockData = async () => {
   loading.value = true;
@@ -137,36 +113,23 @@ onMounted(() => {
   <div class="stock-list-container">
     <div class="header">
       <div class="search-container">
-        <AutoComplete
-          v-model:value="searchValue"
-          :options="searchOptions"
-          :dropdown-match-select-width="280"
-          style="width: 200px"
-          placeholder="搜索股票"
-          @select="handleSelectStock"
-          :loading="searchLoading"
-        >
+        <AutoComplete v-model:value="searchValue" :options="searchOptions" :dropdown-match-select-width="280"
+          style="width: 200px" placeholder="搜索股票" @select="handleSelectStock" :loading="searchLoading">
           <template #default>
             <Input size="small" />
           </template>
         </AutoComplete>
       </div>
-      <Button 
-        type="primary" 
-        size="small" 
-        @click="loadStockData" 
-        :loading="loading"
-      >刷新</Button>
+      <Button type="primary" size="small" @click="loadStockData" :loading="loading">刷新</Button>
     </div>
-    
-    <Table
-      :columns="columns"
-      :data-source="stockData"
-      :loading="loading"
-      :pagination="false"
-      size="small"
-      class="custom-table"
-    >
+
+    <Table :columns="columns" :data-source="stockData" :loading="loading" :pagination="false" size="small"
+      class="custom-table" :row-class-name="(record) => record.code === selectedStock?.code ? 'selected-row' : ''"
+      :customRow="(record) => {
+          return {
+            onClick: () => handleRowClick(record)
+          };
+        }">
       <template #emptyText>
         <div class="empty-container">暂无股票数据</div>
       </template>
@@ -253,5 +216,14 @@ onMounted(() => {
 
 :deep(.ant-table-tbody > tr:hover > td) {
   background-color: #f9f9f9;
+}
+
+/* 添加选中行的样式 */
+.selected-row {
+  background-color: #e6f7ff !important;
+}
+
+:deep(.selected-row:hover > td) {
+  background-color: #e6f7ff !important;
 }
 </style>
