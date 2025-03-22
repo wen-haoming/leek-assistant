@@ -122,8 +122,9 @@ onMounted(() => {
       </div>
       <Button type="primary" size="small" @click="loadStockData" :loading="loading">刷新</Button>
     </div>
-
-    <Table :columns="columns" :data-source="stockData" :loading="loading" :pagination="false" size="small"
+    <Table 
+    :showHeader="false"
+    :columns="columns" :data-source="stockData" :loading="loading" :pagination="false" size="small"
       class="custom-table" :row-class-name="(record) => record.code === selectedStock?.code ? 'selected-row' : ''"
       :customRow="(record) => {
           return {

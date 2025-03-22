@@ -1,22 +1,22 @@
 <template>
   <div class="stock-chart-container">
-    <div v-if="!stockInfo" class="empty-chart">
+    <div v-if="!selectedStock" class="empty-chart">
       请选择一个股票查看分时图
     </div>
     <div v-else>
       <!-- 保持现有的头部信息 -->
       <div class="chart-header">
         <div class="stock-info">
-          <div class="stock-name">{{ stockInfo.name }}</div>
-          <div class="stock-code">{{ stockInfo.code }}</div>
+          <div class="stock-name">{{ selectedStock.name }}</div>
+          <div class="stock-code">{{ selectedStock.code }}</div>
         </div>
         <div class="stock-price">
-          <div class="current-price">{{ stockInfo.price }}</div>
+          <div class="current-price">{{ selectedStock.price }}</div>
           <div 
             class="price-change" 
-            :class="parseFloat(stockInfo.change) >= 0 ? 'up' : 'down'"
+            :class="parseFloat(selectedStock.change) >= 0 ? 'up' : 'down'"
           >
-            {{ parseFloat(stockInfo.change) >= 0 ? '+' : '' }}{{ stockInfo.change }}%
+            {{ parseFloat(selectedStock.change) >= 0 ? '+' : '' }}{{ selectedStock.change }}%
           </div>
         </div>
       </div>
@@ -42,6 +42,8 @@ import {
 import { CanvasRenderer } from 'echarts/renderers';
 import { getTrends } from '../../api';
 
+
+
 // 注册必要的组件
 echarts.use([
   LineChart,
@@ -53,15 +55,26 @@ echarts.use([
   CanvasRenderer
 ]);
 
-const props = defineProps({
-  stockInfo: Object
-});
+// stockInfo
 
 const chartRef = ref(null);
 let chart = null;
 const loading = ref(false);
 const priceData = ref([]);
 const timeData = ref([]);
+const selectedStock = ref(null);
+// 监听股票选择事件
+const handleStockSelected = (event) => {
+  selectedStock.value = event.detail.stock;
+};
+
+onMounted(() => {
+  window.addEventListener('stockSelected', handleStockSelected);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('stockSelected', handleStockSelected);
+});
 
 // 初始化图表
 const initChart = () => {
@@ -216,11 +229,11 @@ const handleResize = () => {
 
 // 加载分时数据
 const loadTrendsData = async () => {
-  if (!props.stockInfo) return;
+  if (!selectedStock.value) return;
   
   loading.value = true;
   try {
-    const secid = `${props.stockInfo.code.startsWith('6') ? '1.' : '0.'}${props.stockInfo.code}`;
+    const secid = `${selectedStock.value.code.startsWith('6') ? '1.' : '0.'}${selectedStock.value.code}`;
     const response = await getTrends(secid);
     
     if (response?.data?.trends) {
@@ -260,12 +273,12 @@ const updateChart = () => {
   if (!chart || priceData.value.length === 0) return;
   
   // 计算基准线（昨日收盘价）
-  const preClose = props.stockInfo && props.stockInfo.price ? 
-    (parseFloat(props.stockInfo.price) / (1 + parseFloat(props.stockInfo.change) / 100)).toFixed(2) : 0;
+  const preClose = selectedStock.value && selectedStock.value.price ? 
+    (parseFloat(selectedStock.value.price) / (1 + parseFloat(selectedStock.value.change) / 100)).toFixed(2) : 0;
   
   chart.setOption({
     title: {
-      text: props.stockInfo ? `${props.stockInfo.name} (${props.stockInfo.code})` : '股票分时图'
+      text: selectedStock.value ? `${selectedStock.value.name} (${selectedStock.value.code})` : '股票分时图'
     },
     xAxis: {
       data: timeData.value
@@ -287,7 +300,7 @@ const updateChart = () => {
 };
 
 // 监听股票信息变化
-watch(() => props.stockInfo, (newVal) => {
+watch(() => selectedStock.value, (newVal) => {
   if (newVal) {
     // 确保图表已初始化
     if (!chart && chartRef.value) {
@@ -307,7 +320,7 @@ onMounted(() => {
   // 延迟初始化图表，确保DOM已渲染
   nextTick(() => {
     initChart();
-    if (props.stockInfo) {
+    if (selectedStock.value) {
       loadTrendsData();
     }
   });
