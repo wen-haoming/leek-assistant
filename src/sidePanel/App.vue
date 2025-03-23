@@ -32,8 +32,8 @@ const value1 = ref('1');
 </script>
 <style>
 html, body, #app {
-  width: 100%;
-  height: 100%;
+  /* width: 100vw;
+  height: 100vh; */
 }
 </style>
 <style scoped lang="less">
