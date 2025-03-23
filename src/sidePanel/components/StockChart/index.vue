@@ -42,8 +42,6 @@ import {
 import { CanvasRenderer } from 'echarts/renderers';
 import { getTrends } from '../../api';
 
-
-
 // 注册必要的组件
 echarts.use([
   LineChart,

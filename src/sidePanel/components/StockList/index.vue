@@ -1,45 +1,79 @@
 <script lang="tsx" setup>
-import { Button, Table, AutoComplete, Select } from "ant-design-vue"
+import { Button, Table, AutoComplete } from "ant-design-vue"
 import { onMounted, ref, watch } from "vue"
-import { getStockDetails, getStockDetail } from "../../api"
+import { getStockDetails, MarketType, searchStockByMarket, getMarketPrefix } from "../../api"
 import { columns } from './utils';
-import {PlusCircleOutlined} from '@ant-design/icons-vue'
+import { RedoOutlined } from '@ant-design/icons-vue';
+// 定义类型
+interface StockOption {
+  value: string;
+  label: string;
+  code: string;
+  name: string;
+  price: string;
+  change: string;
+}
+
+interface StockData {
+  code: string;
+  name: string;
+  price: string | number;
+  change: string | number;
+  pe: string | number;
+}
+
+// 修复Template中使用的类型
+type StockRecordType = Record<string, any>;
+
+// 定义props接收市场类型
+const props = defineProps({
+  marketType: {
+    type: String as () => MarketType,
+    default: MarketType.A
+  }
+});
+
 // 定义股票数据的响应式引用
-const stockData = ref([]);
+const stockData = ref<StockData[]>([]);
 const loading = ref(false);
 const searchValue = ref('');
-const searchOptions = ref([]);
+const searchOptions = ref<StockOption[]>([]);
 const searchLoading = ref(false);
 // 选中的股票
-const selectedStock = ref(null);
+const selectedStock = ref<StockData | null>(null);
 
-// 已添加的股票代码列表
-const addedStockCodes = ref(['0.000725', '1.600036', '0.000001', '0.000858', '1.601318']);
+// 已添加的股票代码列表 - 根据市场类型初始化不同的默认股票
+const addedStockCodes = ref(getDefaultStocks(props.marketType));
 
-
+// 根据市场类型获取默认股票列表
+function getDefaultStocks(marketType: MarketType): string[] {
+  switch (marketType) {
+    case MarketType.A:
+      return ['0.000725', '1.600036', '0.000001', '0.000858', '1.601318'];
+    case MarketType.HK:
+      return ['116.00700', '116.00388', '116.09988', '116.01211', '116.03690'];
+    case MarketType.US:
+      return ['105.AAPL', '105.MSFT', '105.GOOG', '105.AMZN', '105.NVDA'];
+    default:
+      return [];
+  }
+}
 
 // 实现搜索股票的函数
-const handleSearch = async (keyword) => {
+const handleSearch = async (keyword: string) => {
   if (!keyword) {
     searchOptions.value = [];
     return;
   }
   searchLoading.value = true;
   try {
-    // 尝试直接获取股票详情
-    let detail = await getStockDetail(`1.${keyword}`);
-    let isShanghai = true;
-
-    if (!detail?.data) {
-      // 如果沪市没有，尝试深市
-      detail = await getStockDetail(`0.${keyword}`);
-      isShanghai = false;
-    }
+    // 使用带市场类型的股票搜索接口
+    const detail = await searchStockByMarket(keyword, props.marketType);
 
     if (detail?.data) {
       const { f57: code, f58: name, f43: price, f170: change } = detail.data;
-      // 确保使用正确的市场前缀
-      const marketPrefix = isShanghai ? '1.' : '0.';
+      // 使用市场前缀函数获取正确的前缀
+      const marketPrefix = getMarketPrefix(props.marketType, code);
       searchOptions.value = [{
         value: `${marketPrefix}${code}`,
         label: `${name} (${code}) ${price.toFixed(2)} ${change >= 0 ? '+' : ''}${change.toFixed(2)}%`,
@@ -62,13 +96,13 @@ const handleSearch = async (keyword) => {
 };
 
 // 处理表格行点击事件
-const handleRowClick = (record) => {
+const handleRowClick = (record: StockData) => {
   selectedStock.value = record;
   // 发送事件通知父组件
   const event = new CustomEvent('stockSelected', {
     detail: {
       stock: record,
-      secid: `${record.code.startsWith('6') ? '1.' : '0.'}${record.code}`
+      secid: `${getMarketPrefix(props.marketType, record.code)}${record.code}`
     }
   });
   window.dispatchEvent(event);
@@ -79,16 +113,19 @@ const loadStockData = async () => {
   loading.value = true;
   try {
     const stockList = addedStockCodes.value;
-    const response = await getStockDetails(stockList);
+    const response = await getStockDetails(stockList, props.marketType);
     // 处理返回的数据，转换为表格需要的格式
-    stockData.value = response?.data?.diff.map(item => ({
-      code: item.f12,
-      name: item.f14,
-      price: typeof item.f2 === 'number' ? item.f2.toFixed(2) : item.f2,
-      change: typeof item.f3 === 'number' ? item.f3.toFixed(2) : item.f3,
-      pe: typeof item.f9 === 'number' ? item.f9.toFixed(2) : item.f9,
-    })) || [];
-    console.log(stockData.value,'stockData');
+    if (response?.data?.diff) {
+      stockData.value = response.data.diff.map(item => ({
+        code: item.f12,
+        name: item.f14,
+        price: typeof item.f2 === 'number' ? item.f2.toFixed(2) : item.f2,
+        change: typeof item.f3 === 'number' ? item.f3.toFixed(2) : item.f3,
+        pe: typeof item.f9 === 'number' ? item.f9.toFixed(2) : item.f9,
+      }));
+    } else {
+      stockData.value = [];
+    }
   } catch (error) {
     console.error('加载股票数据失败:', error);
   } finally {
@@ -96,18 +133,23 @@ const loadStockData = async () => {
   }
 };
 
-const handleSelectStock = (value) => {
+const handleSelectStock = (value: string) => {
   if (!addedStockCodes.value.includes(value)) {
     addedStockCodes.value.push(value);
     loadStockData();
   }
 }
 
+// 监听市场类型变化，重新加载股票数据
+watch(() => props.marketType, (newType) => {
+  // 切换市场类型时，重置已添加的股票代码并重新加载
+  addedStockCodes.value = getDefaultStocks(newType);
+  loadStockData();
+});
+
 onMounted(() => {
   loadStockData();
 })
-
-
 </script>
 
 <template>
@@ -123,9 +165,9 @@ onMounted(() => {
             @search="handleSearch"
             @select="handleSelectStock"
             @keydown.enter="() => {
-              if (searchOptions.value?.[0]) {
-                const stockCode = searchOptions.value[0].value;
-                if (!addedStockCodes.value.includes(stockCode)) {
+              if (searchOptions.length > 0) {
+                const stockCode = searchOptions[0].value;
+                if (stockCode && !addedStockCodes.value.includes(stockCode)) {
                   addedStockCodes.value.push(stockCode);
                   loadStockData();
                 }
@@ -133,21 +175,24 @@ onMounted(() => {
             }"
           />
       </div>
-      <Button type="primary" size="small" @click="loadStockData" :loading="loading">刷新</Button>
+      <Button @click="loadStockData" :loading="loading">
+        <template #icon>
+          <RedoOutlined />
+        </template>
+      </Button>
     </div>
     <Table 
     :showHeader="false"
     :columns="columns" 
     :data-source="stockData" 
-    :loading="loading" 
     :pagination="false"
      size="small"
       class="custom-table" 
       :bordered="false"
-      :row-class-name="(record) => record.code === selectedStock?.code ? 'selected-row' : ''"
-      :customRow="(record) => {
+      :row-class-name="(record: StockRecordType) => record.code === selectedStock?.code ? 'selected-row' : ''"
+      :customRow="(record: StockRecordType) => {
           return {
-            onClick: () => handleRowClick(record)
+            onClick: () => handleRowClick(record as StockData)
           };
         }">
       <template #emptyText>
