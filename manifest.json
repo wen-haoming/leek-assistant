@@ -1,23 +1,25 @@
 {
   "manifest_version": 3,
-  "name": "My Vue Chrome Ext",
+  "name": "韭菜助理",
   "version": "0.0.1",
-  "description": "Chrome 插件",
+  "description": "韭菜助理",
   "icons": {
     "16": "icons/icon.png",
     "19": "icons/icon.png",
     "38": "icons/icon.png",
     "48": "icons/icon.png",
     "128": "icons/icon.png"
-},
+  },
   "action": {
-    "default_title": "Vue Chrome Ext",
+    "default_title": "韭菜助理",
     "default_icon": "icons/icon.png"
   },
   "background": {
     "service_worker": "background/service-worker.js"
   },
   "permissions": [
+    "<all_urls>",
+    "https://vip.stock.finance.sina.com.cn/*",
     "proxy",
     "tabs",
     "webRequest",

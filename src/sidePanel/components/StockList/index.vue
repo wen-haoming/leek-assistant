@@ -1,9 +1,10 @@
 <script lang="tsx" setup>
-import { Button, Table, AutoComplete } from "ant-design-vue"
-import { onMounted, ref, watch } from "vue"
+import { Button, Table, AutoComplete ,Tooltip} from "ant-design-vue"
+import {onMounted, ref, watch } from "vue"
 import { getStockDetails, MarketType, searchStockByMarket, getMarketPrefix } from "../../api"
 import { columns } from './utils';
 import { RedoOutlined } from '@ant-design/icons-vue';
+import dayjs from "dayjs";
 // 定义类型
 interface StockOption {
   value: string;
@@ -19,17 +20,26 @@ interface StockData {
   name: string;
   price: string | number;
   change: string | number;
-  pe: string | number;
+  pe?: string | number;
+  secid?: string;
 }
 
 // 修复Template中使用的类型
 type StockRecordType = Record<string, any>;
 
-// 定义props接收市场类型
+// 定义props接收市场类型和可选的自定义股票列表
 const props = defineProps({
   marketType: {
     type: String as () => MarketType,
     default: MarketType.A
+  },
+  customStocks: {
+    type: Array as () => StockData[],
+    default: () => []
+  },
+  showHeader: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -41,6 +51,8 @@ const searchOptions = ref<StockOption[]>([]);
 const searchLoading = ref(false);
 // 选中的股票
 const selectedStock = ref<StockData | null>(null);
+// 添加更新时间字段
+const updateTime = ref<string>('');
 
 // 已添加的股票代码列表 - 根据市场类型初始化不同的默认股票
 const addedStockCodes = ref(getDefaultStocks(props.marketType));
@@ -102,7 +114,7 @@ const handleRowClick = (record: StockData) => {
   const event = new CustomEvent('stockSelected', {
     detail: {
       stock: record,
-      secid: `${getMarketPrefix(props.marketType, record.code)}${record.code}`
+      secid: record.secid || `${getMarketPrefix(props.marketType, record.code)}${record.code}`
     }
   });
   window.dispatchEvent(event);
@@ -110,6 +122,13 @@ const handleRowClick = (record: StockData) => {
 
 // 加载股票数据
 const loadStockData = async () => {
+  // 如果提供了自定义股票列表，则直接使用
+  if (props.customStocks && props.customStocks.length > 0) {
+    stockData.value = props.customStocks;
+    updateTime.value = dayjs().format('HH:mm:ss');
+    return;
+  }
+
   loading.value = true;
   try {
     const stockList = addedStockCodes.value;
@@ -123,6 +142,8 @@ const loadStockData = async () => {
         change: typeof item.f3 === 'number' ? item.f3.toFixed(2) : item.f3,
         pe: typeof item.f9 === 'number' ? item.f9.toFixed(2) : item.f9,
       }));
+      // 从响应中获取更新时间并格式化
+      updateTime.value = dayjs().format('HH:mm:ss');
     } else {
       stockData.value = [];
     }
@@ -142,10 +163,23 @@ const handleSelectStock = (value: string) => {
 
 // 监听市场类型变化，重新加载股票数据
 watch(() => props.marketType, (newType) => {
+  // 如果有自定义股票，不需要重新加载
+  if (props.customStocks && props.customStocks.length > 0) return;
+  
   // 切换市场类型时，重置已添加的股票代码并重新加载
   addedStockCodes.value = getDefaultStocks(newType);
   loadStockData();
 });
+
+// 监听自定义股票变化
+watch(() => props.customStocks, (newStocks) => {
+  if (newStocks && newStocks.length > 0) {
+    stockData.value = newStocks;
+    updateTime.value = dayjs().format('HH:mm:ss');
+  } else {
+    loadStockData();
+  }
+}, { deep: true });
 
 onMounted(() => {
   loadStockData();
@@ -154,39 +188,42 @@ onMounted(() => {
 
 <template>
   <div class="stock-list-container">
-    <div class="header">
-      <div class="search-container">
-        <AutoComplete
-            show-search
-            placeholder="输入代码"
-            :options="searchOptions"
-            :loading="searchLoading"
-            style="width: 250px"
-            @search="handleSearch"
-            @select="handleSelectStock"
-            @keydown.enter="() => {
-              if (searchOptions.length > 0) {
-                const stockCode = searchOptions[0].value;
-                if (stockCode && !addedStockCodes.value.includes(stockCode)) {
-                  addedStockCodes.value.push(stockCode);
-                  loadStockData();
-                }
+    <div class="header" v-if="showHeader">
+      <AutoComplete
+          show-search
+          placeholder="输入代码"
+          :options="searchOptions"
+          :loading="searchLoading"
+          style="flex:1;margin-right: 10px;"
+          @search="handleSearch"
+          @select="handleSelectStock"
+          @keydown.enter="() => {
+            if (searchOptions.value.length > 0 && searchOptions.value[0]?.value) {
+              const stockCode = searchOptions.value[0].value;
+              if (stockCode && !addedStockCodes.value.includes(stockCode)) {
+                addedStockCodes.value.push(stockCode);
+                loadStockData();
               }
-            }"
-          />
+            }
+          }"
+        />
+      <div>
+        <Tooltip title="更新时间">
+          <span style="color: #ccc;margin-right: 5px;">{{ updateTime || '-' }}</span>
+        </Tooltip>
+        <Button @click="loadStockData" :loading="loading">
+          <template #icon>
+            <RedoOutlined />
+          </template>
+        </Button>
       </div>
-      <Button @click="loadStockData" :loading="loading">
-        <template #icon>
-          <RedoOutlined />
-        </template>
-      </Button>
     </div>
     <Table 
-    :showHeader="false"
-    :columns="columns" 
-    :data-source="stockData" 
-    :pagination="false"
-     size="small"
+      :showHeader="false"
+      :columns="columns" 
+      :data-source="stockData" 
+      :pagination="false"
+      size="small"
       class="custom-table" 
       :bordered="false"
       :row-class-name="(record: StockRecordType) => record.code === selectedStock?.code ? 'selected-row' : ''"

@@ -27,7 +27,7 @@
   </div>
 </template>
 <script setup>
-import { ref, onMounted, watch, onUnmounted, nextTick } from 'vue';
+import { ref, onMounted, watch, onUnmounted, nextTick, defineProps, defineEmits } from 'vue';
 import * as echarts from 'echarts/core';
 import { LineChart } from 'echarts/charts';
 import dayjs from 'dayjs';
@@ -53,7 +53,20 @@ echarts.use([
   CanvasRenderer
 ]);
 
-// stockInfo
+// 定义props
+const props = defineProps({
+  stockInfo: {
+    type: Object,
+    default: null
+  },
+  secid: {
+    type: String,
+    default: ''
+  }
+});
+
+// 定义emit
+const emit = defineEmits(['mounted']);
 
 const chartRef = ref(null);
 let chart = null;
@@ -61,13 +74,25 @@ const loading = ref(false);
 const priceData = ref([]);
 const timeData = ref([]);
 const selectedStock = ref(null);
-// 监听股票选择事件
+
+// 监听股票选择事件（保留原有功能，以兼容现有代码）
 const handleStockSelected = (event) => {
-  selectedStock.value = event.detail.stock;
+  if (!props.stockInfo) { // 如果没有通过props传递stockInfo，才使用事件
+    selectedStock.value = event.detail.stock;
+  }
+};
+
+// 初始化设置，优先使用props
+const setupStockInfo = () => {
+  if (props.stockInfo) {
+    selectedStock.value = props.stockInfo;
+  }
 };
 
 onMounted(() => {
   window.addEventListener('stockSelected', handleStockSelected);
+  setupStockInfo();
+  emit('mounted');
 });
 
 onUnmounted(() => {
@@ -231,7 +256,8 @@ const loadTrendsData = async () => {
   
   loading.value = true;
   try {
-    const secid = `${selectedStock.value.code.startsWith('6') ? '1.' : '0.'}${selectedStock.value.code}`;
+    // 优先使用props传入的secid，如果没有则使用股票代码生成
+    const secid = props.secid || `${selectedStock.value.code.startsWith('6') ? '1.' : '0.'}${selectedStock.value.code}`;
     const response = await getTrends(secid);
     
     if (response?.data?.trends) {
@@ -297,9 +323,13 @@ const updateChart = () => {
   });
 };
 
-// 监听股票信息变化
-watch(() => selectedStock.value, (newVal) => {
-  if (newVal) {
+// 监听股票信息变化（包括props传入的stockInfo）
+watch([() => selectedStock.value, () => props.stockInfo], ([newSelectedStock, newStockInfo]) => {
+  if (newStockInfo && !selectedStock.value) {
+    selectedStock.value = newStockInfo;
+  }
+  
+  if (selectedStock.value) {
     // 确保图表已初始化
     if (!chart && chartRef.value) {
       initChart();
