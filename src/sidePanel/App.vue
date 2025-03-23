@@ -23,7 +23,7 @@
         <Market />
       </Tabs.TabPane>
     </Tabs>
-    <StockChart />
+    <StockChart :marketType="currentMarketType" />
   </div>
   </ConfigProvider>
 </template>
@@ -32,11 +32,20 @@
 import {Radio, Tabs,ConfigProvider} from 'ant-design-vue';
 import StockList from './components/StockList/index.vue';
 import { MarketType } from './api';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import Market from './components/Market/index.vue';
 import StockChart from './components/StockChart/index.vue';
 const value1 = ref('1');
 
+// 根据选择的值计算当前市场类型
+const currentMarketType = computed(() => {
+  switch (value1.value) {
+    case '1': return MarketType.A;
+    case '2': return MarketType.HK;
+    case '3': return MarketType.US;
+    default: return MarketType.A;
+  }
+});
 </script>
 <style>
 html, body, #app {

@@ -110,11 +110,19 @@ const handleSearch = async (keyword: string) => {
 // 处理表格行点击事件
 const handleRowClick = (record: StockData) => {
   selectedStock.value = record;
+  
+  // 确保有正确的 secid
+  const secid = record.secid || `${getMarketPrefix(props.marketType, record.code)}${record.code}`;
+  
   // 发送事件通知父组件
   const event = new CustomEvent('stockSelected', {
     detail: {
-      stock: record,
-      secid: record.secid || `${getMarketPrefix(props.marketType, record.code)}${record.code}`
+      stock: {
+        ...record,
+        // 确保 stock 对象中包含市场信息
+        market: props.marketType
+      },
+      secid: secid
     }
   });
   window.dispatchEvent(event);

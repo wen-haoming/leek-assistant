@@ -37,6 +37,7 @@
   </div>
 </template>
 <script setup lang="ts">
+// 添加导入
 import { ref, onMounted, watch, onUnmounted, nextTick, defineProps, defineEmits } from 'vue';
 import * as echarts from 'echarts/core';
 import { LineChart, CandlestickChart } from 'echarts/charts';
@@ -50,7 +51,7 @@ import {
   MarkLineComponent
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
-import { getTrends, getKlineData } from '../../api';
+import { MarketType, getTrends, getKlineData, getMarketPrefix } from '../../api';
 
 // 注册必要的组件
 echarts.use([
@@ -73,6 +74,10 @@ const props = defineProps({
   secid: {
     type: String,
     default: ''
+  },
+  marketType: {
+    type: String,
+    default: MarketType.A
   }
 });
 
@@ -94,6 +99,10 @@ const klineData = ref([]);
 const handleStockSelected = (event) => {
   if (!props.stockInfo) { // 如果没有通过props传递stockInfo，才使用事件
     selectedStock.value = event.detail.stock;
+    // 如果事件中包含 secid，则使用事件中的 secid
+    if (event.detail.secid) {
+      // 这里不需要额外处理，因为 loadChartData 会使用 props.secid 或根据市场类型生成
+    }
   }
 };
 
@@ -345,8 +354,13 @@ const loadChartData = async () => {
   
   loading.value = true;
   try {
-    // 优先使用props传入的secid，如果没有则使用股票代码生成
-    const secid = props.secid || `${selectedStock.value.code.startsWith('6') ? '1.' : '0.'}${selectedStock.value.code}`;
+    // 根据市场类型和股票代码生成正确的 secid
+    let secid = props.secid;
+    if (!secid) {
+      // 如果没有传入 secid，则根据市场类型和股票代码生成
+      const prefix = getMarketPrefix(props.marketType, selectedStock.value.code);
+      secid = `${prefix}${selectedStock.value.code}`;
+    }
     
     if (chartType.value === 'timeline') {
       // 加载分时数据
@@ -360,12 +374,19 @@ const loadChartData = async () => {
   } finally {
     loading.value = false;
   }
-}
-;
+};
 
-// 加载分时数据
+// 修改 loadTrendsData 函数，添加市场相关参数
 const loadTrendsData = async (secid) => {
-  const response = await getTrends(secid);
+  // 根据不同市场类型可能需要添加不同的参数
+  const marketParams = {};
+  
+  // 对于港股和美股，可能需要特殊处理
+  if (props.marketType === MarketType.HK || props.marketType === MarketType.US) {
+    marketParams.iscr = '1'; // 国际市场
+  }
+  
+  const response = await getTrends(secid, marketParams);
   
   if (response?.data?.trends) {
     const preClose = response.data.preClose || 0;
@@ -395,45 +416,52 @@ const loadTrendsData = async (secid) => {
   }
 };
 
-// 加载K线数据（模拟数据，实际项目中应替换为真实API调用）
-const loadKlineData = async (secid: string) => {
-    try {
-        // 根据图表类型选择对应的 klt 参数
-        const kltMap = {
-            'day': 101,    // 日线
-            'week': 102,   // 周线
-            'month': 103,  // 月线
-            'quarter': 104 // 季线
-        };
-        
-        const klt = kltMap[chartType.value] || 101;
-        const response = await getKlineData(secid, klt);
-        
-        if (response?.data?.klines) {
-            const klines = response.data.klines;
-            const times = [];
-            const data = [];
-            
-            klines.forEach(item => {
-                const [time, open, close, highest, lowest] = item.split(',');
-                times.push(time);
-                data.push([
-                    parseFloat(open),
-                    parseFloat(close),
-                    parseFloat(lowest),
-                    parseFloat(highest)
-                ]);
-            });
-            
-            timeData.value = times;
-            priceData.value = []; // 清空分时数据
-            klineData.value = data;
-            
-            updateChart();
-        }
-    } catch (error) {
-        console.error('加载K线数据失败:', error);
+// 修改 loadKlineData 函数，添加市场相关参数
+const loadKlineData = async (secid) => {
+  try {
+    // 根据图表类型选择对应的 klt 参数
+    const kltMap = {
+      'day': 101,    // 日线
+      'week': 102,   // 周线
+      'month': 103,  // 月线
+      'quarter': 104 // 季线
+    };
+    
+    const klt = kltMap[chartType.value] || 101;
+    
+    // 添加市场相关参数
+    const marketParams = {};
+    if (props.marketType === MarketType.HK || props.marketType === MarketType.US) {
+      marketParams.iscr = '1'; // 国际市场
     }
+    
+    const response = await getKlineData(secid, klt, 1, marketParams);
+    
+    if (response?.data?.klines) {
+      const klines = response.data.klines;
+      const times = [];
+      const data = [];
+      
+      klines.forEach(item => {
+        const [time, open, close, highest, lowest] = item.split(',');
+        times.push(time);
+        data.push([
+          parseFloat(open),
+          parseFloat(close),
+          parseFloat(lowest),
+          parseFloat(highest)
+        ]);
+      });
+      
+      timeData.value = times;
+      priceData.value = []; // 清空分时数据
+      klineData.value = data;
+      
+      updateChart();
+    }
+  } catch (error) {
+    console.error('加载K线数据失败:', error);
+  }
 };
 
 // // 修改 loadMoreHistoricalData 函数
@@ -691,7 +719,7 @@ onUnmounted(() => {
 
 <style scoped>
 .stock-chart-container {
-  margin-top: 16px;
+  margin: 16px 0;
   padding: 5px;
   background-color: #fff;
   border-radius: 8px;
