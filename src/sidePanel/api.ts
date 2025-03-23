@@ -214,3 +214,36 @@ export function getStockMarketParams(marketType: MarketType): Record<string, str
       return {}; // 默认为空
   }
 }
+
+
+interface KlineResponse {
+    rc: number;
+    rt: number;
+    svr: number;
+    lt: number;
+    full: number;
+    data: {
+        code: string;
+        market: number;
+        name: string;
+        decimal: number;
+        dktotal: number;
+        preKPrice: number;
+        klines: string[]; // 每个元素格式："时间,开盘价,收盘价,最高价,最低价,成交量,成交额,振幅"
+    };
+}
+
+export function getKlineData(secid: string, klt: number = 101, fqt: number = 1, additionalParams?: Record<string, string>): Promise<KlineResponse> {
+    const baseUrl = `https://push2his.eastmoney.com/api/qt/stock/kline/get`;
+    const queryParams = {
+        secid,
+        fields1: 'f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13',
+        fields2: 'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61',
+        klt: klt.toString(), // K线间距: 101=日线, 102=周线, 103=月线, 104=季线, 105=年线
+        fqt: fqt.toString(), // 复权类型：0=不复权, 1=前复权, 2=后复权
+        end: '20500101',
+        lmt: '1000', // 最大返回条数
+        ...additionalParams
+    };
+    return request<KlineResponse>(baseUrl, queryParams);
+}
