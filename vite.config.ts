@@ -37,7 +37,6 @@ export default defineConfig({
         contentPage: path.resolve(__dirname, 'src/contentPage/index.html'),
         content: path.resolve(__dirname, 'src/content/content.ts'),
         background: path.resolve(__dirname, 'src/background/service-worker.ts'),
-        sidePanel: path.resolve(__dirname, 'src/sidePanel/index.html'),
       },
       output: {
         assetFileNames: 'assets/[name]-[hash].[ext]', // 静态资源

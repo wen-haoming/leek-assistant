@@ -12,7 +12,8 @@
   },
   "action": {
     "default_title": "韭菜助理",
-    "default_icon": "icons/icon.png"
+    "default_icon": "icons/icon.png",
+    "default_popup": "popup/index.html"
   },
   "background": {
     "service_worker": "background/service-worker.js"
@@ -23,8 +24,7 @@
     "proxy",
     "tabs",
     "webRequest",
-    "proxy",
-    "sidePanel"
+    "proxy"
   ],
   "optional_permissions": [
     "https://searchapi.eastmoney.com"
