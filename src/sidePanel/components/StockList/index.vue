@@ -1,9 +1,9 @@
 <script lang="tsx" setup>
-import { Button, Table, AutoComplete ,Tooltip} from "ant-design-vue"
+import { Button, Table, AutoComplete ,Tooltip, Dropdown as ADropdown, Menu as AMenu, MenuProps } from "ant-design-vue"
 import {onMounted, ref, watch, computed, onUnmounted } from "vue"
 import { getStockDetails, MarketType, searchStockByMarket, getMarketPrefix } from "../../api"
 import { columns } from './utils';
-import { RedoOutlined } from '@ant-design/icons-vue';
+import { RedoOutlined, DeleteOutlined } from '@ant-design/icons-vue';
 import dayjs from "dayjs";
 // 定义类型
 interface StockOption {
@@ -43,6 +43,10 @@ const props = defineProps({
   showHeader: {
     type: Boolean,
     default: true
+  },
+  canDelete: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -61,6 +65,16 @@ const selectedStock = ref<StockData | null>(null);
 const updateTime = ref<string>('');
 // 添加轮询定时器引用
 const pollingTimer = ref<number | null>(null);
+
+// 右键菜单相关状态
+const contextMenuVisible = ref(false);
+const contextMenuStyle = ref({
+  position: 'fixed',
+  top: '0px',
+  left: '0px',
+  display: 'none'
+});
+const rightClickedStock = ref<StockData | null>(null);
 
 // 使用全局状态中的股票列表
 const addedStockCodes = computed(() => {
@@ -210,6 +224,41 @@ onMounted(() => {
 onUnmounted(() => {
   stopPolling();
 });
+
+// 处理右键点击
+const handleRightClick = (e: MouseEvent, record: StockData) => {
+  if (!props.canDelete) return;
+  
+  e.preventDefault();
+  rightClickedStock.value = record;
+  contextMenuStyle.value = {
+    position: 'fixed',
+    top: `${e.clientY}px`,
+    left: `${e.clientX}px`,
+    display: 'block'
+  };
+  contextMenuVisible.value = true;
+};
+
+// 处理菜单可见性变化
+const handleContextMenuVisibleChange = (visible: boolean) => {
+  contextMenuVisible.value = visible;
+  if (!visible) {
+    contextMenuStyle.value.display = 'none';
+  }
+};
+
+// 处理菜单点击
+const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
+  if (key === 'delete' && rightClickedStock.value) {
+    // 这里实现删除逻辑
+    const index = stockData.value.findIndex(stock => stock.code === rightClickedStock.value?.code);
+    if (index > -1) {
+      stockData.value.splice(index, 1);
+    }
+  }
+  contextMenuVisible.value = false;
+};
 </script>
 
 <template>
@@ -255,13 +304,29 @@ onUnmounted(() => {
       :row-class-name="(record: StockRecordType) => record.code === selectedStock?.code ? 'selected-row' : ''"
       :customRow="(record: StockRecordType) => {
           return {
-            onClick: () => handleRowClick(record as StockData)
+            onClick: () => handleRowClick(record as StockData),
+            onContextmenu: (e: MouseEvent) => handleRightClick(e, record as StockData)
           };
         }">
       <template #emptyText>
         <div class="empty-container">暂无股票数据</div>
       </template>
     </Table>
+    <!-- 添加右键菜单 -->
+    <a-dropdown :visible="contextMenuVisible" :trigger="['contextmenu']" @visibleChange="handleContextMenuVisibleChange">
+      <template #overlay>
+        <a-menu @click="handleMenuClick">
+          <a-menu-item key="delete" :disabled="!canDelete">
+            <delete-outlined />
+            删除
+          </a-menu-item>
+        </a-menu>
+      </template>
+      <div 
+        :style="contextMenuStyle" 
+        class="context-menu-trigger"
+      ></div>
+    </a-dropdown>
   </div>
 </template>
 
@@ -355,5 +420,13 @@ onUnmounted(() => {
 
 :deep(.selected-row:hover > td) {
   background-color: #e6f7ff !important;
+}
+
+.context-menu-trigger {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  background: transparent;
+  pointer-events: none;
 }
 </style>

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>韭菜助手 - 您的智能股票助手</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,9 +13,10 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: #2c3e50;
+            background-color: #f8f9fa;
         }
 
         .container {
@@ -25,12 +27,14 @@
 
         /* 导航栏样式 */
         .navbar {
-            background-color: #2c3e50;
+            background-color: rgba(255, 255, 255, 0.98);
             padding: 1rem 0;
             position: fixed;
             width: 100%;
             top: 0;
             z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
         }
 
         .navbar .container {
@@ -40,61 +44,141 @@
         }
 
         .logo {
-            color: white;
-            font-size: 1.5rem;
+            color: #1a365d;
+            font-size: 1.8rem;
             font-weight: bold;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo img {
+            width: 32px;
+            height: 32px;
         }
 
         /* 主要内容区域 */
         .hero {
-            padding: 120px 0 60px;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            padding: 160px 0 100px;
+            background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%);
             color: white;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1" fill="rgba(255,255,255,0.05)"/></svg>');
+            opacity: 0.3;
         }
 
         .hero h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -1px;
         }
 
         .hero p {
-            font-size: 1.2rem;
-            margin-bottom: 2rem;
+            font-size: 1.4rem;
+            margin-bottom: 3rem;
+            opacity: 0.9;
+        }
+
+        .download-button {
+            display: inline-flex;
+            align-items: center;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #fff;
+            background: linear-gradient(45deg, #4299e1 0%, #667eea 100%);
+            border-radius: 8px;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+        }
+
+        .download-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .download-button svg {
+            margin-right: 10px;
+            width: 20px;
+            height: 20px;
         }
 
         .features {
-            padding: 60px 0;
-            background: #f9f9f9;
+            padding: 100px 0;
+            background: #fff;
         }
 
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
-            margin-top: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
         }
 
         .feature-card {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            text-align: center;
+            background: #fff;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            transition: transform 0.3s;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-card h3 {
+            color: #2d3748;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .feature-card p {
+            color: #718096;
+            font-size: 1.1rem;
+            line-height: 1.7;
+        }
+
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 20px;
+            color: #4299e1;
         }
 
         /* 响应式设计 */
         @media (max-width: 768px) {
             .hero h1 {
-                font-size: 2rem;
+                font-size: 2.5rem;
             }
 
             .hero p {
-                font-size: 1rem;
+                font-size: 1.1rem;
             }
 
             .features-grid {
                 grid-template-columns: 1fr;
+                padding: 0 20px;
+            }
+
+            .feature-card {
+                padding: 30px;
             }
         }
     </style>
@@ -102,30 +186,51 @@
 <body>
     <nav class="navbar">
         <div class="container">
-            <div class="logo">韭菜助手</div>
+            <a href="#" class="logo">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="#1a365d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                韭菜助手
+            </a>
         </div>
     </nav>
 
     <section class="hero">
         <div class="container">
-            <h1>韭菜助手 - 智能股票分析工具</h1>
-            <p>让投资决策更简单、更智能</p>
+            <h1>韭菜助手</h1>
+            <p>专业的智能股票分析工具，让投资决策更简单、更智能</p>
+            <a href="/dist.crx" class="download-button" download="dist.crx">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                下载插件
+            </a>
         </div>
     </section>
+
     <section class="features">
         <div class="container">
             <div class="features-grid">
                 <div class="feature-card">
+                    <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
                     <h3>实时行情</h3>
-                    <p>随时掌握市场动态，快速响应市场变化</p>
+                    <p>支持A股、港股、美股的实时行情数据，让您随时掌握市场动态，快速响应市场变化</p>
                 </div>
                 <div class="feature-card">
+                    <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
                     <h3>智能分析</h3>
-                    <p>专业的技术分析工具，助您做出明智决策</p>
+                    <p>强大的技术分析工具，结合AI智能算法，为您提供专业的投资建议和市场洞察</p>
                 </div>
                 <div class="feature-card">
+                    <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
                     <h3>个性化提醒</h3>
-                    <p>自定义价格提醒，重要信息实时通知</p>
+                    <p>支持自定义价格提醒、突破提醒、量能提醒等多种提醒方式，重要信息实时通知</p>
                 </div>
             </div>
         </div>

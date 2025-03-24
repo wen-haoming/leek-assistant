@@ -7,17 +7,21 @@
     }"
   >
     <div class="side-panel">
-    <Tabs style="height: 100%;overflow-y: auto;">
+    <Tabs 
+      style="height: 100%;overflow-y: auto;"
+      v-model:activeKey="activeKey"
+      @change="handleTabChange"
+    >
       <Tabs.TabPane tab="股票" key="1">
         <Radio.Group size="small" v-model:value="value1" button-style="solid" class="group-radio">
           <Radio.Button value="1" class="group-radio-item">A股</Radio.Button>
           <Radio.Button value="2" class="group-radio-item">港股</Radio.Button>
           <Radio.Button value="3" class="group-radio-item">美股</Radio.Button>
-      </Radio.Group>
-      <br/>
-      <StockList v-if="value1 === '1'" :marketType="MarketType.A" />
-      <StockList v-if="value1 === '2'" :marketType="MarketType.HK" />
-      <StockList v-if="value1 === '3'" :marketType="MarketType.US" />
+        </Radio.Group>
+        <br/>
+        <StockList v-if="value1 === '1'" :marketType="MarketType.A" :canDelete="activeKey === '1'" />
+        <StockList v-if="value1 === '2'" :marketType="MarketType.HK" :canDelete="activeKey === '1'" />
+        <StockList v-if="value1 === '3'" :marketType="MarketType.US" :canDelete="activeKey === '1'" />
       </Tabs.TabPane>
       <Tabs.TabPane tab="行情" key="2">
         <Market />
@@ -35,7 +39,14 @@ import { MarketType } from './api';
 import { ref, computed } from 'vue';
 import Market from './components/Market/index.vue';
 import StockChart from './components/StockChart/index.vue';
+
 const value1 = ref('1');
+const activeKey = ref('1');
+
+// 处理标签页切换
+const handleTabChange = (key: string) => {
+  activeKey.value = key;
+};
 
 // 根据选择的值计算当前市场类型
 const currentMarketType = computed(() => {
