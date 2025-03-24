@@ -93,6 +93,7 @@
         }
 
         .download-button {
+            position: relative;
             display: inline-flex;
             align-items: center;
             padding: 1rem 2rem;
@@ -199,13 +200,13 @@
     <section class="hero">
         <div class="container">
             <h1>韭菜助手</h1>
-            <p>专业的智能股票分析工具，让投资决策更简单、更智能</p>
-            <a href="/dist.crx" class="download-button" download="/dist.crx">
+            <p >专业的智能股票分析工具，让投资决策更简单、更智能</p>
+            <div class="download-button" id="downloadButton" onclick="console.log('click')">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                 </svg>
                 下载插件
-            </a>
+            </div>
         </div>
     </section>
 
@@ -236,5 +237,29 @@
             </div>
         </div>
     </section>
+
+    <script>
+        document.getElementById('downloadButton').addEventListener('click', function(e) {
+            console.log('downloadButton clicked');  
+            e.preventDefault();
+            const downloadUrl = '/dist.crx';
+            fetch(downloadUrl)
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'leekAssistant.crx';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                })
+                .catch(error => {
+                    console.error('下载失败:', error);
+                    alert('下载失败，请稍后重试');
+                });
+        });
+    </script>
 </body>
 </html>
