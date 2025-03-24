@@ -1,13 +1,15 @@
 <template>
   <ConfigProvider
-  :theme="{
-      token: {
-        colorPrimary: '#597ef7',
-      },
+    :theme="{
+        token: {
+          colorPrimary: '#597ef7',
+        }
     }"
   >
     <div class="popup-container">
       <Tabs
+        type="card"
+        size="small"
         style="height: 100%;"
         v-model:activeKey="activeKey"
         @change="handleTabChange"
@@ -73,6 +75,7 @@ html, body, #app {
   width: 300px;
   height: 400px;
   justify-content: space-between;
+  padding: 10px;
   
   .group-radio {
     width: 100%;
