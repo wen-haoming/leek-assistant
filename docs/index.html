@@ -242,7 +242,7 @@
         document.getElementById('downloadButton').addEventListener('click', function(e) {
             console.log('downloadButton clicked');  
             e.preventDefault();
-            const downloadUrl = '/docs/dist.crx';
+            const downloadUrl = '/leek-assistant/docs/dist.crx';
             fetch(downloadUrl)
                 .then(response => response.blob())
                 .then(blob => {
