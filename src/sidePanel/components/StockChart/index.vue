@@ -38,7 +38,7 @@
 </template>
 <script setup lang="ts">
 // 添加导入
-import { ref, onMounted, watch, onUnmounted, nextTick, defineProps, defineEmits } from 'vue';
+import { ref, onMounted, watch, onUnmounted, nextTick, defineProps, defineEmits,computed } from 'vue';
 import * as echarts from 'echarts/core';
 import { LineChart, CandlestickChart } from 'echarts/charts';
 import dayjs from 'dayjs';
@@ -52,6 +52,7 @@ import {
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import { MarketType, getTrends, getKlineData, getMarketPrefix } from '../../api';
+import { useGlobalState } from "../../store";
 
 // 注册必要的组件
 echarts.use([
@@ -89,38 +90,61 @@ let chart = null;
 const loading = ref(false);
 const priceData = ref([]);
 const timeData = ref([]);
-const selectedStock = ref(null);
 // 图表类型：分时、日线、周线、月线、季线
 const chartType = ref('timeline');
 // K线图数据格式 [open, close, lowest, highest]
 const klineData = ref([]);
 
-// 监听股票选择事件（保留原有功能，以兼容现有代码）
-const handleStockSelected = (event) => {
-  if (!props.stockInfo) { // 如果没有通过props传递stockInfo，才使用事件
-    selectedStock.value = event.detail.stock;
-    // 如果事件中包含 secid，则使用事件中的 secid
-    if (event.detail.secid) {
-      // 这里不需要额外处理，因为 loadChartData 会使用 props.secid 或根据市场类型生成
+// 获取全局状态
+const { selectedStock: globalSelectedStock } = useGlobalState();
+
+// 移除原有的事件监听相关代码
+// const handleStockSelected = (event) => { ... }
+
+// 使用计算属性监听全局选中的股票
+const selectedStock = computed(() => {
+  // 如果有 props.stockInfo，优先使用 props
+  if (props.stockInfo) {
+    return props.stockInfo;
+  }
+  return globalSelectedStock.value;
+});
+
+// 监听选中股票变化
+watch(() => selectedStock.value, (newStock) => {
+  if (newStock) {
+    // 确保图表已初始化
+    if (!chart && chartRef.value) {
+      initChart();
+    }
+    loadChartData();
+  } else {
+    priceData.value = [];
+    timeData.value = [];
+    klineData.value = [];
+    if (chart) {
+      updateChart();
     }
   }
-};
+}, { immediate: true });
 
-// 初始化设置，优先使用props
-const setupStockInfo = () => {
-  if (props.stockInfo) {
-    selectedStock.value = props.stockInfo;
-  }
-};
-
+// 移除原有的 onMounted 和 onUnmounted 中的事件监听
 onMounted(() => {
-  window.addEventListener('stockSelected', handleStockSelected);
-  setupStockInfo();
+  // 移除 window.addEventListener('stockSelected', handleStockSelected);
+  // setupStockInfo();
+  nextTick(() => {
+    initChart();
+    if (selectedStock.value) {
+      loadChartData();
+    }
+  });
   emit('mounted');
 });
 
 onUnmounted(() => {
-  window.removeEventListener('stockSelected', handleStockSelected);
+  // 移除 window.removeEventListener('stockSelected', handleStockSelected);
+  window.removeEventListener('resize', handleResize);
+  chart && chart.dispose();
 });
 
 // 初始化图表
@@ -464,142 +488,7 @@ const loadKlineData = async (secid) => {
   }
 };
 
-// // 修改 loadMoreHistoricalData 函数
-// const loadMoreHistoricalData = async (secid: string) => {
-//     // 由于东方财富的接口已经一次性返回足够多的历史数据
-//     // 这里可以不需要实现加载更多的逻辑
-//     return;
-// };
 
-// 获取工作日（排除周末）
-const getBussinessDay = (startDate, offset) => {
-  let date = startDate.clone();
-  let count = 0;
-  
-  while (count < offset) {
-    date = date.subtract(1, 'day');
-    // 跳过周末 (0是周日，6是周六)
-    if (date.day() !== 0 && date.day() !== 6) {
-      count++;
-    }
-  }
-  
-  return date;
-};
-
-// 获取周线日期（每周五）
-const getWeeklyDate = (startDate, weekOffset) => {
-  // 从当前日期找到最近的周五
-  let date = startDate.clone();
-  while (date.day() !== 5) { // 5 代表周五
-    date = date.subtract(1, 'day');
-  }
-  
-  // 然后再减去指定的周数
-  return date.subtract(weekOffset, 'week');
-};
-
-// 加载更多历史数据
-const loadMoreHistoricalData = async (secid) => {
-  // 避免重复加载
-  if (loading.value) return;
-  
-  loading.value = true;
-  
-  try {
-    // 这里应该调用实际的API获取更早的历史数据
-    // 由于使用模拟数据，这里模拟添加更多历史数据
-    
-    const additionalCount = {
-      'day': 60,     // 额外3个月
-      'week': 12,    // 额外3个月
-      'month': 12,   // 额外1年
-      'quarter': 4   // 额外1年
-    }[chartType.value] || 60;
-    
-    const times = [...timeData.value];
-    const data = [...klineData.value];
-    
-    // 获取当前最早的日期
-    const earliestDate = dayjs(times[0], chartType.value === 'month' ? 'YYYY-MM' : 
-                                         chartType.value === 'quarter' ? 'YYYY-[Q]Q' : 'YYYY-MM-DD');
-    
-    for (let i = 1; i <= additionalCount; i++) {
-      let date;
-      let dateFormat;
-      
-      switch(chartType.value) {
-        case 'day':
-          date = getBussinessDay(earliestDate, i);
-          dateFormat = 'YYYY-MM-DD';
-          break;
-        case 'week':
-          date = earliestDate.subtract(i, 'week');
-          while (date.day() !== 5) { // 确保是周五
-            date = date.subtract(1, 'day');
-          }
-          dateFormat = 'YYYY-MM-DD';
-          break;
-        case 'month':
-          date = earliestDate.subtract(i, 'month').endOf('month');
-          dateFormat = 'YYYY-MM';
-          break;
-        case 'quarter':
-          let quarterOffset = i * 3;
-          date = earliestDate.subtract(quarterOffset, 'month');
-          date = dayjs(date.format('YYYY-') + [3, 6, 9, 12][Math.floor(date.month() / 3)] + '-01').endOf('month');
-          dateFormat = 'YYYY-[Q]Q';
-          break;
-        default:
-          date = getBussinessDay(earliestDate, i);
-          dateFormat = 'YYYY-MM-DD';
-      }
-      
-      times.unshift(date.format(dateFormat));
-      
-      // 生成连贯的K线数据，与前面的数据有连续性
-      const lastData = data[0];
-      const lastClose = lastData[1]; // 前一个周期的收盘价
-      
-      // 基于前一周期收盘价生成新数据
-      const volatility = lastClose * 0.03; // 波动范围为前收盘价的3%
-      const open = parseFloat((lastClose + (Math.random() - 0.5) * volatility).toFixed(2));
-      const close = parseFloat((open + (Math.random() - 0.5) * volatility).toFixed(2));
-      const highest = parseFloat(Math.max(open, close, open + Math.random() * volatility/2).toFixed(2));
-      const lowest = parseFloat(Math.min(open, close, close - Math.random() * volatility/2).toFixed(2));
-      
-      data.unshift([open, close, lowest, highest]);
-    }
-    
-    // 更新数据
-    timeData.value = times;
-    klineData.value = data;
-    
-    // 保持当前缩放和滚动位置
-    let zoomSize = 0;
-    if (chart.getOption().dataZoom[0]) {
-      zoomSize = chart.getOption().dataZoom[0].end - chart.getOption().dataZoom[0].start;
-    }
-    
-    // 更新图表，并设置新的缩放位置
-    updateChart();
-    
-    // 调整缩放位置，将新加载的数据考虑在内
-    const newEndPosition = (timeData.value.length - additionalCount) / timeData.value.length * 100;
-    const newStartPosition = Math.max(0, newEndPosition - zoomSize);
-    
-    chart.dispatchAction({
-      type: 'dataZoom',
-      start: newStartPosition,
-      end: newEndPosition
-    });
-    
-  } catch (error) {
-    console.error('加载更多历史数据失败:', error);
-  } finally {
-    loading.value = false;
-  }
-};
 
 // 更新图表数据
 const updateChart = () => {

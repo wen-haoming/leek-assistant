@@ -47,7 +47,7 @@ const props = defineProps({
 });
 
 // 获取全局状态
-const { stockLists, addStockToList, removeStockFromList } = useGlobalState();
+const { stockLists, addStockToList, removeStockFromList, setSelectedStock } = useGlobalState();
 
 // 定义股票数据的响应式引用
 const stockData = ref<StockData[]>([]);
@@ -109,23 +109,14 @@ const handleSearch = async (keyword: string) => {
 
 // 处理表格行点击事件
 const handleRowClick = (record: StockData) => {
-  selectedStock.value = record;
-  
-  // 确保有正确的 secid
   const secid = record.secid || `${getMarketPrefix(props.marketType, record.code)}${record.code}`;
   
-  // 发送事件通知父组件
-  const event = new CustomEvent('stockSelected', {
-    detail: {
-      stock: {
-        ...record,
-        // 确保 stock 对象中包含市场信息
-        market: props.marketType
-      },
-      secid: secid
-    }
+  // 使用全局状态更新选中的股票
+  setSelectedStock({
+    ...record,
+    market: props.marketType,
+    secid
   });
-  window.dispatchEvent(event);
 };
 
 // 加载股票数据
@@ -246,7 +237,7 @@ onUnmounted(() => {
         <Tooltip title="更新时间">
           <span style="color: #ccc;margin-right: 5px;">{{ updateTime || '-' }}</span>
         </Tooltip>
-        <Button @click="loadStockData" :loading="loading">
+        <Button @click="loadStockData" >
           <template #icon>
             <RedoOutlined />
           </template>

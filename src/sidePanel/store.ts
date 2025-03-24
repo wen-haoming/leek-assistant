@@ -1,5 +1,4 @@
 import { createGlobalState } from '@vueuse/core'
-// store.js
 import { computed, shallowRef, onMounted, ref } from 'vue'
 import { MarketType } from './api'
 
@@ -83,6 +82,14 @@ export const useGlobalState = createGlobalState(
       saveToStorage(defaultStockLists);
     }
 
+    // 添加选中股票的状态
+    const selectedStock = ref(null);
+
+    // 设置选中的股票
+    function setSelectedStock(stock: any) {
+      selectedStock.value = stock;
+    }
+
     return { 
       count, 
       doubleCount, 
@@ -90,7 +97,10 @@ export const useGlobalState = createGlobalState(
       stockLists, 
       addStockToList, 
       removeStockFromList,
-      resetStockLists
+      resetStockLists,
+      // 添加新的状态和方法
+      selectedStock,
+      setSelectedStock
     }
   }
 )
