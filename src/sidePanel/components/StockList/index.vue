@@ -1,6 +1,6 @@
 <script lang="tsx" setup>
 import { Button, Table, AutoComplete ,Tooltip} from "ant-design-vue"
-import {onMounted, ref, watch } from "vue"
+import {onMounted, ref, watch, computed, onUnmounted } from "vue"
 import { getStockDetails, MarketType, searchStockByMarket, getMarketPrefix } from "../../api"
 import { columns } from './utils';
 import { RedoOutlined } from '@ant-design/icons-vue';
@@ -27,6 +27,9 @@ interface StockData {
 // 修复Template中使用的类型
 type StockRecordType = Record<string, any>;
 
+// 在 import 部分添加全局状态
+import { useGlobalState } from "../../store";
+
 // 定义props接收市场类型和可选的自定义股票列表
 const props = defineProps({
   marketType: {
@@ -43,6 +46,9 @@ const props = defineProps({
   }
 });
 
+// 获取全局状态
+const { stockLists, addStockToList, removeStockFromList } = useGlobalState();
+
 // 定义股票数据的响应式引用
 const stockData = ref<StockData[]>([]);
 const loading = ref(false);
@@ -53,23 +59,17 @@ const searchLoading = ref(false);
 const selectedStock = ref<StockData | null>(null);
 // 添加更新时间字段
 const updateTime = ref<string>('');
+// 添加轮询定时器引用
+const pollingTimer = ref<number | null>(null);
 
-// 已添加的股票代码列表 - 根据市场类型初始化不同的默认股票
-const addedStockCodes = ref(getDefaultStocks(props.marketType));
+// 使用全局状态中的股票列表
+const addedStockCodes = computed(() => {
+  return props.customStocks && props.customStocks.length > 0 
+    ? [] // 如果有自定义股票，则不使用全局状态
+    : stockLists.value[props.marketType];
+});
 
-// 根据市场类型获取默认股票列表
-function getDefaultStocks(marketType: MarketType): string[] {
-  switch (marketType) {
-    case MarketType.A:
-      return ['0.000725', '1.600036', '0.000001', '0.000858', '1.601318'];
-    case MarketType.HK:
-      return ['116.00700', '116.00388', '116.09988', '116.01211', '116.03690'];
-    case MarketType.US:
-      return ['105.AAPL', '105.MSFT', '105.GOOG', '105.AMZN', '105.NVDA'];
-    default:
-      return [];
-  }
-}
+// 移除 getDefaultStocks 函数，因为现在使用全局状态
 
 // 实现搜索股票的函数
 const handleSearch = async (keyword: string) => {
@@ -139,6 +139,7 @@ const loadStockData = async () => {
 
   loading.value = true;
   try {
+    // 使用计算属性获取股票列表
     const stockList = addedStockCodes.value;
     const response = await getStockDetails(stockList, props.marketType);
     // 处理返回的数据，转换为表格需要的格式
@@ -162,9 +163,29 @@ const loadStockData = async () => {
   }
 };
 
+// 开始轮询
+const startPolling = () => {
+  // 先清除可能存在的定时器
+  stopPolling();
+  
+  // 设置新的定时器，每秒钟执行一次
+  pollingTimer.value = window.setInterval(() => {
+    loadStockData();
+  }, 1000);
+};
+
+// 停止轮询
+const stopPolling = () => {
+  if (pollingTimer.value !== null) {
+    clearInterval(pollingTimer.value);
+    pollingTimer.value = null;
+  }
+};
+
+// 修改 handleSelectStock 函数，使用全局状态的 addStockToList
 const handleSelectStock = (value: string) => {
   if (!addedStockCodes.value.includes(value)) {
-    addedStockCodes.value.push(value);
+    addStockToList(props.marketType, value);
     loadStockData();
   }
 }
@@ -174,8 +195,7 @@ watch(() => props.marketType, (newType) => {
   // 如果有自定义股票，不需要重新加载
   if (props.customStocks && props.customStocks.length > 0) return;
   
-  // 切换市场类型时，重置已添加的股票代码并重新加载
-  addedStockCodes.value = getDefaultStocks(newType);
+  // 切换市场类型时，直接加载数据，不需要重置列表，因为列表已经在全局状态中
   loadStockData();
 });
 
@@ -189,9 +209,16 @@ watch(() => props.customStocks, (newStocks) => {
   }
 }, { deep: true });
 
+// 组件挂载时，加载数据并开始轮询
 onMounted(() => {
   loadStockData();
-})
+  startPolling();
+});
+
+// 组件卸载时，停止轮询
+onUnmounted(() => {
+  stopPolling();
+});
 </script>
 
 <template>
