@@ -10,6 +10,5 @@ declare module 'vue' {
   export interface GlobalComponents {
     ARadioButton: typeof import('ant-design-vue/es')['RadioButton']
     ARadioGroup: typeof import('ant-design-vue/es')['RadioGroup']
-    ASpin: typeof import('ant-design-vue/es')['Spin']
   }
 }

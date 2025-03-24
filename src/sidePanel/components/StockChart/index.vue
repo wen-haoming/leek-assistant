@@ -1,9 +1,6 @@
 <template>
   <div class="stock-chart-container">
-    <div v-if="!selectedStock" class="empty-chart">
-      请选择一个股票查看分时图
-    </div>
-    <div v-else>
+    <div v-if="selectedStock">
       <!-- 保持现有的头部信息 -->
       <div class="chart-header">
         <div class="stock-info">
@@ -18,6 +15,11 @@
           >
             {{ parseFloat(selectedStock.change) >= 0 ? '+' : '' }}{{ selectedStock.change }}%
           </div>
+        </div>
+        <div class="close-button" @click="setSelectedStock(null)">
+          <a-button type="text" size="small">
+            <template #icon><CloseOutlined /></template>
+          </a-button>
         </div>
       </div>
       <!-- 添加图表类型切换 -->
@@ -42,7 +44,8 @@ import { ref, onMounted, watch, onUnmounted, nextTick, defineProps, defineEmits,
 import * as echarts from 'echarts/core';
 import { LineChart, CandlestickChart } from 'echarts/charts';
 import dayjs from 'dayjs';
-import { Spin as ASpin, Radio as ARadio } from 'ant-design-vue';
+import { Spin as ASpin, Radio as ARadio, Button as AButton } from 'ant-design-vue';
+import { CloseOutlined } from '@ant-design/icons-vue';
 import { 
   GridComponent, 
   TooltipComponent, 
@@ -69,7 +72,7 @@ echarts.use([
 // 定义props
 const props = defineProps({
   stockInfo: {
-    type: Object,
+    type: Object as () => any,
     default: null
   },
   secid: {
@@ -83,20 +86,20 @@ const props = defineProps({
 });
 
 // 定义emit
-const emit = defineEmits(['mounted']);
+const emit = defineEmits(['mounted', 'close']);
 
-const chartRef = ref(null);
-let chart = null;
+const chartRef = ref<HTMLElement | null>(null);
+let chart: echarts.ECharts | null = null;
 const loading = ref(false);
-const priceData = ref([]);
-const timeData = ref([]);
+const priceData = ref<number[]>([]);
+const timeData = ref<string[]>([]);
 // 图表类型：分时、日线、周线、月线、季线
-const chartType = ref('timeline');
+const chartType = ref<'timeline' | 'day' | 'week' | 'month' | 'quarter'>('timeline');
 // K线图数据格式 [open, close, lowest, highest]
-const klineData = ref([]);
+const klineData = ref<number[][]>([]);
 
 // 获取全局状态
-const { selectedStock: globalSelectedStock } = useGlobalState();
+const { selectedStock: globalSelectedStock,setSelectedStock } = useGlobalState();
 
 // 移除原有的事件监听相关代码
 // const handleStockSelected = (event) => { ... }
@@ -604,15 +607,27 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
   chart && chart.dispose();
 });
+
+// 添加关闭处理函数
+const handleClose = () => {
+  selectedStock.value = null;
+  if (chart) {
+    chart.dispose();
+    chart = null;
+  }
+  emit('close');
+};
 </script>
 
 <style scoped>
 .stock-chart-container {
-  margin: 16px 0;
-  padding: 5px;
-  background-color: #fff;
-  border-radius: 8px;
   position: relative;
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  border-radius: 4px;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .empty-chart {
@@ -628,7 +643,16 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.close-button {
+
+}
+
+.close-button:hover {
+  opacity: 1;
 }
 
 .chart-type-selector {

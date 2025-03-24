@@ -15,6 +15,7 @@
     "ant-design-vue": "4.x",
     "dayjs": "^1.11.13",
     "echarts": "^5.6.0",
+    "file-saver": "^2.0.5",
     "unplugin-vue-components": "^28.4.1",
     "vue": "^3.3.4"
   },

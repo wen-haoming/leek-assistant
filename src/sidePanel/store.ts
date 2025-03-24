@@ -100,7 +100,8 @@ export const useGlobalState = createGlobalState(
       resetStockLists,
       // 添加新的状态和方法
       selectedStock,
-      setSelectedStock
+      setSelectedStock,
+      
     }
   }
 )
