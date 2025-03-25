@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { getStockDetails, MarketType } from "../../api";
 import StockList from '../StockList/index.vue';
+import { Radio } from 'ant-design-vue';
 
 // 定义指数接口
 interface IndexItem {
@@ -22,6 +23,7 @@ interface MarketConfig {
 
 // 加载状态
 const loading = ref(false);
+const currentMarket = ref('1');
 
 // 市场配置
 const marketsConfig = ref<MarketConfig[]>([
@@ -111,11 +113,31 @@ onUnmounted(() => {
 
 <template>
   <div class="market-container">
-    <div v-for="market in marketsConfig" :key="market.title" class="market-section">
-      <div class="market-title">{{ market.title }}</div>
+    <Radio.Group v-model:value="currentMarket" button-style="solid" size="small"  class="group-radio">
+      <Radio.Button value="1" class="group-radio-item">A股</Radio.Button>
+      <Radio.Button value="2" class="group-radio-item">港股</Radio.Button>
+      <Radio.Button value="3" class="group-radio-item">美股</Radio.Button>
+    </Radio.Group>
+    
+    <div class="market-content">
       <StockList 
-        :customStocks="market.indices" 
-        :marketType="market.type" 
+        v-if="currentMarket === '1'"
+        :customStocks="marketsConfig[0].indices" 
+        :marketType="MarketType.A" 
+        :showHeader="false"
+        class="index-list"
+      />
+      <StockList 
+        v-if="currentMarket === '2'"
+        :customStocks="marketsConfig[1].indices" 
+        :marketType="MarketType.HK" 
+        :showHeader="false"
+        class="index-list"
+      />
+      <StockList 
+        v-if="currentMarket === '3'"
+        :customStocks="marketsConfig[2].indices" 
+        :marketType="MarketType.US" 
         :showHeader="false"
         class="index-list"
       />
@@ -123,7 +145,7 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style scoped lang="less">
+<!-- <style scoped lang="less">
 .market-container {
   width: 100%;
   padding: 8px;
@@ -133,22 +155,20 @@ onUnmounted(() => {
   box-sizing: border-box;
   position: relative;
   
-  .market-section {
+  .group-radio {
+    width: 100%;
+    display: flex;
     margin-bottom: 12px;
-    &:last-child {
-      margin-bottom: 0;
-    }
-    .market-title {
-      font-size: 14px;
-      font-weight: 500;
-      color: #666;
-      margin-bottom: 6px;
-      padding-left: 6px;
+    .group-radio-item {
+      flex: 1;
+      text-align: center;
     }
   }
   
-  .index-list {
-    margin-bottom: 0;
+  .market-content {
+    .index-list {
+      margin-bottom: 0;
+    }
   }
 }
-</style>
+</style> -->

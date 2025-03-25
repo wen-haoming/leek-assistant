@@ -51,7 +51,7 @@ const props = defineProps({
 });
 
 // 获取全局状态
-const { stockLists, addStockToList, removeStockFromList, setSelectedStock } = useGlobalState();
+const { stockLists, addStockToList, setSelectedStock } = useGlobalState();
 
 // 定义股票数据的响应式引用
 const stockData = ref<StockData[]>([]);
@@ -172,11 +172,10 @@ const loadStockData = async () => {
 const startPolling = () => {
   // 先清除可能存在的定时器
   stopPolling();
-  
   // 设置新的定时器，每秒钟执行一次
   pollingTimer.value = window.setInterval(() => {
     loadStockData();
-  }, 1000);
+  }, 5000);
 };
 
 // 停止轮询
