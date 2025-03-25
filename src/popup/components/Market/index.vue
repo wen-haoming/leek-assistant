@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { getStockDetails, MarketType } from "../../api";
 import StockList from '../StockList/index.vue';
-import { Radio } from 'ant-design-vue';
+import { Radio, Tag } from 'ant-design-vue';
 
 // 定义指数接口
 interface IndexItem {
@@ -113,10 +113,16 @@ onUnmounted(() => {
 
 <template>
   <div class="market-container">
-    <Radio.Group v-model:value="currentMarket" button-style="solid" size="small"  class="group-radio">
-      <Radio.Button value="1" class="group-radio-item">A股</Radio.Button>
-      <Radio.Button value="2" class="group-radio-item">港股</Radio.Button>
-      <Radio.Button value="3" class="group-radio-item">美股</Radio.Button>
+    <Radio.Group v-model:value="currentMarket" button-style="solid" class="market-radio-group">
+      <Radio.Button value="1" class="market-radio-item">
+        A
+      </Radio.Button>
+      <Radio.Button value="2" class="market-radio-item">
+        <Tag color="purple" :bordered="false">港</Tag>
+      </Radio.Button>
+      <Radio.Button value="3" class="market-radio-item">
+        <Tag color="cyan" :bordered="false">美</Tag>
+      </Radio.Button>
     </Radio.Group>
     
     <div class="market-content">
@@ -145,7 +151,7 @@ onUnmounted(() => {
   </div>
 </template>
 
-<!-- <style scoped lang="less">
+<style scoped lang="less">
 .market-container {
   width: 100%;
   padding: 8px;
@@ -155,13 +161,17 @@ onUnmounted(() => {
   box-sizing: border-box;
   position: relative;
   
-  .group-radio {
+  .market-radio-group {
     width: 100%;
     display: flex;
     margin-bottom: 12px;
-    .group-radio-item {
+    
+    .market-radio-item {
       flex: 1;
       text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
   }
   
@@ -171,4 +181,4 @@ onUnmounted(() => {
     }
   }
 }
-</style> -->
+</style>
